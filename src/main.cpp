@@ -25,7 +25,7 @@ const char* mqtt_server = "76a05382ac0c4728aa05e3ec258beda1.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
 const char* mqtt_user = "testmqtt"; 
 const char* mqtt_password = "ESP32mqtt"; 
-const char* mqtt_topic = "esp32/mqtt";
+const char* mqtt_topic = "esp32";
 
 // HiveMQ Cloud Let's Encrypt CA certificate
 static const char *root_ca PROGMEM = R"EOF(
@@ -195,20 +195,25 @@ void resetWiFiConfig() {
 //   Serial.println(WiFi.localIP());
 // }
 
-void callback(String topic, byte* message, unsigned int length) {
+void callback(char* topic, byte* message, unsigned int length) {
   // Serial.print("Message arrived on topic: ");
   // Serial.print(topic);
   // Serial.print(". Message: ");
   String messageTemp;
-  
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
   Serial.println();
 
-  Serial.print("Message content: ");
-  Serial.println(messageTemp);
+  if(messageTemp == "Hello"){
+
+    Serial1.print(":i");
+    String receivediTSD = Serial1.readString();
+    Serial.print("Received iTSD: ");
+    Serial.println(receivediTSD);
+  }
+
 }
 
 void reconnect() {
@@ -327,22 +332,22 @@ void loop() {
     // Read data from Serial1
     String receivedData = Serial1.readString();
 
-    double celsius = thermocouple.readCelsius();
-    double fahrenheit = thermocouple.readFahrenheit();
-    String celsiusStr = String(celsius, 2);
-    String fahrenheitStr = String(fahrenheit, 2);
-    String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
-
     Serial.print("Received data: ");
     Serial.println(receivedData);
 
-    // Serial.print("C = ");
-    // Serial.print(celsius);
-    // Serial.print("\tF = ");
-    // Serial.println(fahrenheit);
-    client.publish(mqtt_topic, receivedData.c_str());
-
   }
+
+  double celsius = thermocouple.readCelsius();
+  double fahrenheit = thermocouple.readFahrenheit();
+  String celsiusStr = String(celsius, 2);
+  String fahrenheitStr = String(fahrenheit, 2);
+  String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
+
+  Serial.print("C = ");
+  Serial.print(celsius);
+  Serial.print("\tF = ");
+  Serial.println(fahrenheit);
+  client.publish("mqtt", payload.c_str());
     
   delay(5000); 
 }
