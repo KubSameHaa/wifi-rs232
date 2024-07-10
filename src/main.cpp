@@ -25,7 +25,8 @@ const char* mqtt_server = "76a05382ac0c4728aa05e3ec258beda1.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
 const char* mqtt_user = "testmqtt"; 
 const char* mqtt_password = "ESP32mqtt"; 
-const char* mqtt_topic = "esp32";
+const char* mqtt_topic_sub = "esp32";
+const char* mqtt_topic_pub = "mqtt";
 
 // HiveMQ Cloud Let's Encrypt CA certificate
 static const char *root_ca PROGMEM = R"EOF(
@@ -195,7 +196,7 @@ void resetWiFiConfig() {
 //   Serial.println(WiFi.localIP());
 // }
 
-void callback(char* topic, byte* message, unsigned int length) {
+void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   // Serial.print("Message arrived on topic: ");
   // Serial.print(topic);
   // Serial.print(". Message: ");
@@ -229,7 +230,7 @@ void reconnect() {
     // Attempt to connect
     if (client.connect("ESP32Client", mqtt_user, mqtt_password)) {
       Serial.println("connected");
-      client.subscribe(mqtt_topic); // Subscribe to the topic
+      client.subscribe(mqtt_topic_sub); // Subscribe to the topic
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -334,14 +335,14 @@ void loop() {
   client.loop();
   // Serial.println("Hello");
 
-  if (Serial1.available()>0) {
-    // Read data from Serial1
-    String receivedData = Serial1.readString();
+  // if (Serial1.available()>0) {
+  //   // Read data from Serial1
+  //   String receivedData = Serial1.readString();
 
-    Serial.print("Received data: ");
-    Serial.println(receivedData);
+  //   Serial.print("Received data: ");
+  //   Serial.println(receivedData);
 
-  }
+  // }
 
   double celsius = thermocouple.readCelsius();
   double fahrenheit = thermocouple.readFahrenheit();
@@ -353,7 +354,7 @@ void loop() {
   Serial.print(celsius);
   Serial.print("\tF = ");
   Serial.println(fahrenheit);
-  client.publish("mqtt", payload.c_str());
+  client.publish(mqtt_topic_pub, payload.c_str());
     
   delay(5000); 
 }
