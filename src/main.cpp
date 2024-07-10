@@ -206,13 +206,19 @@ void callback(char* topic, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  if(messageTemp == "Hello"){
+  if(messageTemp == ":i"){
 
     Serial1.print(":i");
     String receivediTSD = Serial1.readString();
     Serial.print("Received iTSD: ");
     Serial.println(receivediTSD);
   }
+  // else{
+  //   Serial1.print(":dA");
+  //   String receivediTSD = Serial1.readString();
+  //   Serial.print("Received iTSD: ");
+  //   Serial.println(receivediTSD);
+  // }
 
 }
 
