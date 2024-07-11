@@ -14,6 +14,11 @@ int thermoDO = 19;
 int thermoCS = 5;
 int thermoCLK = 18;
 
+int state = 1;
+
+long last;
+long last2;
+
 MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 
 // กำหนด SSID และรหัสผ่านสำหรับ Access Point
@@ -207,19 +212,22 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  if(messageTemp == ":i"){
+  if(messageTemp == "hello"){
 
-    Serial1.print(":i");
-    String receivediTSD = Serial1.readString();
-    Serial.print("Received iTSD: ");
-    Serial.println(receivediTSD);
+    state = 1;
+    //Serial1.print(":i");
+    //String receivediTSD = Serial1.readStringUntil('\r');
+    //Serial.print("Received iTSD: ");
+    //Serial.println(receivediTSD);
   }
-  // else{
-  //   Serial1.print(":dA");
-  //   String receivediTSD = Serial1.readString();
-  //   Serial.print("Received iTSD: ");
-  //   Serial.println(receivediTSD);
-  // }
+  else if(messageTemp == "hello2"){
+
+    state = 2;
+    //Serial1.print(":dA");
+    //String receivediTSD = Serial1.readStringUntil('\r');
+    //Serial.print("Received iTSD: ");
+    //Serial.println(receivediTSD);
+  }
 
 }
 
@@ -325,7 +333,8 @@ void setup() {
   // setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
-  reconnect(); // Start the MQTT connection
+  client.subscribe(mqtt_topic_sub);
+  //reconnect(); // Start the MQTT connection
 }
 
 void loop() {
@@ -333,28 +342,58 @@ void loop() {
     reconnect();
   }
   client.loop();
+
+  
+    
+    if(state == 1){
+      if(millis()-last > 5000){
+        last = millis();
+        Serial1.print(":i");
+      }
+    }else if(state == 2){
+      if(millis() - last > 5000){
+        last = millis();
+        Serial1.println(":dA");
+      }
+    }
+
+    if(millis() - last2 > 100){
+      last2 = millis();
+      if(Serial1.available()>0){
+        Serial.print("State:");
+        Serial.println(state);
+        String receivediTSD = Serial1.readString();
+        Serial.print("Received iTSD: ");
+        Serial.println(receivediTSD);
+        receivediTSD  = "";
+      }
+      
+  }
+    
+
   // Serial.println("Hello");
 
-  // if (Serial1.available()>0) {
-  //   // Read data from Serial1
-  //   String receivedData = Serial1.readString();
+   //if (Serial1.available()>0) {
+    // Read data from Serial1
+     //Serial.println("Hello");
+    // String receivedData = Serial1.readString();
 
-  //   Serial.print("Received data: ");
-  //   Serial.println(receivedData);
+    // Serial.print("Received data: ");
+    // Serial.println(receivedData);
 
-  // }
+  //}
 
-  double celsius = thermocouple.readCelsius();
-  double fahrenheit = thermocouple.readFahrenheit();
-  String celsiusStr = String(celsius, 2);
-  String fahrenheitStr = String(fahrenheit, 2);
-  String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
+  // double celsius = thermocouple.readCelsius();
+  // double fahrenheit = thermocouple.readFahrenheit();
+  // String celsiusStr = String(celsius, 2);
+  // String fahrenheitStr = String(fahrenheit, 2);
+  // String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
 
-  Serial.print("C = ");
-  Serial.print(celsius);
-  Serial.print("\tF = ");
-  Serial.println(fahrenheit);
-  client.publish(mqtt_topic_pub, payload.c_str());
+  // Serial.print("C = ");
+  // Serial.print(celsius);
+  // Serial.print("\tF = ");
+  // Serial.println(fahrenheit);
+  // client.publish(mqtt_topic_pub, payload.c_str());
     
-  delay(5000); 
+  //delay(1000); 
 }
