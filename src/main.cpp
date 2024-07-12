@@ -230,6 +230,14 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
     Serial.print("Received iTSD: ");
     Serial.println(receivediTSD);
   }
+  else if(messageTemp == ":dB"){
+
+    // state = 2;
+    Serial1.println(":dB");
+    String receivediTSD = Serial1.readString();
+    Serial.print("Received iTSD: ");
+    Serial.println(receivediTSD);
+  }
 
 }
 
@@ -344,9 +352,7 @@ void loop() {
     reconnect();
   }
   client.loop();
-
   
-    
   //   if(state == 1){
   //     if(millis()-last > 5000){
   //       last = millis();
@@ -372,30 +378,30 @@ void loop() {
       
   // }
     
-
   // Serial.println("Hello");
 
-   //if (Serial1.available()>0) {
-    // Read data from Serial1
-     //Serial.println("Hello");
-    // String receivedData = Serial1.readString();
+  //  if (Serial1.available()>0) {
+  //   Read data from Serial1
+  //   //Serial.println("Hello");
+  //   String receivedData = Serial1.readString();
 
-    // Serial.print("Received data: ");
-    // Serial.println(receivedData);
+  //   Serial.print("Received data: ");
+  //   Serial.println(receivedData);
+  //   client.publish(mqtt_topic_pub, receivedData.c_str());
 
-  //}
+  // }
 
-  // double celsius = thermocouple.readCelsius();
-  // double fahrenheit = thermocouple.readFahrenheit();
-  // String celsiusStr = String(celsius, 2);
-  // String fahrenheitStr = String(fahrenheit, 2);
-  // String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
+  double celsius = thermocouple.readCelsius();
+  double fahrenheit = thermocouple.readFahrenheit();
+  String celsiusStr = String(celsius, 2);
+  String fahrenheitStr = String(fahrenheit, 2);
+  String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
 
-  // Serial.print("C = ");
-  // Serial.print(celsius);
-  // Serial.print("\tF = ");
-  // Serial.println(fahrenheit);
-  // client.publish(mqtt_topic_pub, payload.c_str());
+  Serial.print("C = ");
+  Serial.print(celsius);
+  Serial.print("\tF = ");
+  Serial.println(fahrenheit);
+  client.publish(mqtt_topic_pub, payload.c_str());
     
   delay(1000); 
 }
