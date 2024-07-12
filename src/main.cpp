@@ -212,21 +212,23 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  if(messageTemp == "hello"){
+  if(messageTemp == ":i"){
+    
+    // state = 1;
+    Serial1.print(":i");
+    String receivediTSD = Serial1.readString();
+    Serial.print("Received iTSD: ");
+    Serial.println(receivediTSD);
 
-    state = 1;
-    //Serial1.print(":i");
-    //String receivediTSD = Serial1.readStringUntil('\r');
-    //Serial.print("Received iTSD: ");
-    //Serial.println(receivediTSD);
+
   }
-  else if(messageTemp == "hello2"){
+  else if(messageTemp == ":dA"){
 
-    state = 2;
-    //Serial1.print(":dA");
-    //String receivediTSD = Serial1.readStringUntil('\r');
-    //Serial.print("Received iTSD: ");
-    //Serial.println(receivediTSD);
+    // state = 2;
+    Serial1.println(":dA");
+    String receivediTSD = Serial1.readString();
+    Serial.print("Received iTSD: ");
+    Serial.println(receivediTSD);
   }
 
 }
@@ -345,30 +347,30 @@ void loop() {
 
   
     
-    if(state == 1){
-      if(millis()-last > 5000){
-        last = millis();
-        Serial1.print(":i");
-      }
-    }else if(state == 2){
-      if(millis() - last > 5000){
-        last = millis();
-        Serial1.println(":dA");
-      }
-    }
+  //   if(state == 1){
+  //     if(millis()-last > 5000){
+  //       last = millis();
+  //       Serial1.print(":i");
+  //     }
+  //   }else if(state == 2){
+  //     if(millis() - last > 5000){
+  //       last = millis();
+  //       Serial1.println(":dA");
+  //     }
+  //   }
 
-    if(millis() - last2 > 100){
-      last2 = millis();
-      if(Serial1.available()>0){
-        Serial.print("State:");
-        Serial.println(state);
-        String receivediTSD = Serial1.readString();
-        Serial.print("Received iTSD: ");
-        Serial.println(receivediTSD);
-        receivediTSD  = "";
-      }
+  //   if(millis() - last2 > 100){
+  //     last2 = millis();
+  //     if(Serial1.available()>0){
+  //       // Serial.print("State:");
+  //       // Serial.println(state);
+  //       String receivediTSD = Serial1.readString();
+  //       Serial.print("Received iTSD: ");
+  //       Serial.println(receivediTSD);
+  //       receivediTSD  = "";
+  //     }
       
-  }
+  // }
     
 
   // Serial.println("Hello");
@@ -395,5 +397,5 @@ void loop() {
   // Serial.println(fahrenheit);
   // client.publish(mqtt_topic_pub, payload.c_str());
     
-  //delay(1000); 
+  delay(1000); 
 }
