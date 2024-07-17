@@ -214,29 +214,31 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
 
   if(messageTemp == ":i"){
     
-    // state = 1;
+    //state = 1;
     Serial1.print(":i");
     String receivediTSD = Serial1.readString();
     Serial.print("Received iTSD: ");
     Serial.println(receivediTSD);
-
+    client.publish(mqtt_topic_pub, receivediTSD.c_str());
 
   }
   else if(messageTemp == ":dA"){
 
-    // state = 2;
+    //state = 2;
     Serial1.println(":dA");
     String receivediTSD = Serial1.readString();
     Serial.print("Received iTSD: ");
     Serial.println(receivediTSD);
-  }
-  else if(messageTemp == ":dB"){
+    client.publish(mqtt_topic_pub, receivediTSD.c_str());
+   }
+   else if(messageTemp == ":dB"){
 
-    // state = 2;
+     // state = 2;
     Serial1.println(":dB");
     String receivediTSD = Serial1.readString();
     Serial.print("Received iTSD: ");
     Serial.println(receivediTSD);
+    client.publish(mqtt_topic_pub, receivediTSD.c_str());
   }
 
 }
@@ -268,7 +270,7 @@ void setup() {
   espClient.setCACert(root_ca);
 
   Serial.println("ESP32 Initialized");
-  Serial1.println("Serial1 Initialized");
+  // Serial1.println("Serial1 Initialized");
 
     // Initialize SPIFFS
   if (!SPIFFS.begin(true)) {
@@ -389,19 +391,19 @@ void loop() {
   //   Serial.println(receivedData);
   //   client.publish(mqtt_topic_pub, receivedData.c_str());
 
-  // }
+   //}
 
-  double celsius = thermocouple.readCelsius();
-  double fahrenheit = thermocouple.readFahrenheit();
-  String celsiusStr = String(celsius, 2);
-  String fahrenheitStr = String(fahrenheit, 2);
-  String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
+  // double celsius = thermocouple.readCelsius();
+  // double fahrenheit = thermocouple.readFahrenheit();
+  // String celsiusStr = String(celsius, 2);
+  // String fahrenheitStr = String(fahrenheit, 2);
+  // String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
 
-  Serial.print("C = ");
-  Serial.print(celsius);
-  Serial.print("\tF = ");
-  Serial.println(fahrenheit);
-  client.publish(mqtt_topic_pub, payload.c_str());
+  // Serial.print("C = ");
+  // Serial.print(celsius);
+  // Serial.print("\tF = ");
+  // Serial.println(fahrenheit);
+  // client.publish(mqtt_topic_pub, payload.c_str());
     
   delay(1000); 
 }
