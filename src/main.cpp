@@ -10,16 +10,27 @@
 #define RXD 26  // RXD
 #define TXD 22  // TXD
 
-int thermoDO = 19;
-int thermoCS = 5;
-int thermoCLK = 18;
+ #define RXD2 16  // RXD
+ #define TXD2 17  // TXD
 
+// int thermoDO = 19;
+// int thermoCS = 5;
+// int thermoCLK = 18;
+
+//Switch
+const int buttonPin = 32; // กำหนดขาพินของสวิตซ์
+int buttonState = 0;     // สถานะปัจจุบันของสวิตซ์
+int lastButtonState = 0; // สถานะก่อนหน้าของสวิตซ์
+int count = 0;           // ตัวนับการกดสวิตซ์
 int state = 1;
 
-long last;
-long last2;
+//LED1
+const int LED1 = 18;
 
-MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
+//LED2
+const int LED2 = 19;
+
+//MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 
 // กำหนด SSID และรหัสผ่านสำหรับ Access Point
 const char* apSSID = "ESP32";
@@ -208,21 +219,34 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   }
   // Serial.println("Message received from MQTT:");
   Serial.println(messageTemp);
-
+  
   // ส่งข้อความที่ได้รับจาก MQTT ไปที่ Serial1
-  if (messageTemp.length() > 0) {
+  if (messageTemp.length() > 0 && state == 1) {
     Serial1.println(messageTemp);
     //Serial1.print("\r");
     // delay(100); 
 
-    String receivediTSD = Serial1.readString();
+    String received1 = Serial1.readString();
     Serial.print("Received from Serial1: ");
-    Serial.println(receivediTSD);
+    Serial.println(received1);
 
     // ส่งข้อมูลที่ได้รับจาก Serial1 กลับไปที่ MQTT
-    client.publish(mqtt_topic_pub, receivediTSD.c_str());
+    client.publish(mqtt_topic_pub, received1.c_str());
+  }
+  else if(messageTemp.length() > 0 && state == 2){
+     Serial2.println(messageTemp);
+    //Serial1.print("\r");
+    // delay(100); 
+
+    String received2 = Serial2.readString();
+    Serial.print("Received from Serial2: ");
+    Serial.println(received2);
+
+    // ส่งข้อมูลที่ได้รับจาก Serial1 กลับไปที่ MQTT
+    client.publish(mqtt_topic_pub, received2.c_str());
   }
 }
+
 
 void reconnect() {
   // Loop until we're reconnected
@@ -244,9 +268,13 @@ void reconnect() {
 
 void setup() {
   Serial.begin(115200);
-  
+  pinMode(buttonPin, INPUT);
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
   // Start Serial1 for communication with other devices
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
+  Serial2.begin(9600);
+
 
   espClient.setCACert(root_ca);
 
@@ -331,55 +359,47 @@ void setup() {
 }
 
 void loop() {
- //if(Serial.available()>0){
- //  String data = Serial.readString();
- //  Serial1.print(data);
- //  String data1 = Serial1.readString();
- //  Serial.print(data1);
- //}else if(Serial1.available()>0){
- //  String data1 = Serial1.readString();
- //  Serial.println(data1);
- //}
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
   
-  //   if(state == 1){
-  //     if(millis()-last > 5000){
-  //       last = millis();
-  //       Serial1.print(":i");
-  //     }
-  //   }else if(state == 2){
-  //     if(millis() - last > 5000){
-  //       last = millis();
-  //       Serial1.println(":dA");
-  //     }
-  //   }
+  buttonState = digitalRead(buttonPin); // อ่านสถานะของสวิตซ์
 
-  //   if(millis() - last2 > 100){
-  //     last2 = millis();
-  //     if(Serial1.available()>0){
-  //       // Serial.print("State:");
-  //       // Serial.println(state);
-  //       String receivediTSD = Serial1.readString();
-  //       Serial.print("Received iTSD: ");
-  //       Serial.println(receivediTSD);
-  //       receivediTSD  = "";
-  //     }
-      
-  // }
-    
+  // ตรวจสอบการเปลี่ยนแปลงของสถานะสวิตซ์
+  if (buttonState != lastButtonState) {
+    // ตรวจสอบว่าการเปลี่ยนแปลงนั้นเป็นการกดสวิตซ์ (ไม่ใช่การปล่อยสวิตซ์)
+    if (buttonState == HIGH) {
+      count++; // เพิ่มตัวนับการกดสวิตซ์
+
+      // ตรวจสอบว่าจำนวนการกดสวิตซ์เป็นเลขคู่หรือคี่
+      if (count % 2 == 0) {
+        Serial.println("iTSD1");
+        state = 1;
+        digitalWrite(LED1,1);
+        digitalWrite(LED2,0);
+      } else {
+        Serial.println("iTSD2");
+        state = 2;
+        digitalWrite(LED1,0);
+        digitalWrite(LED2,1);
+      }
+    }
+    // หน่วงเวลาเล็กน้อยเพื่อป้องกันการสั่น (debounce)
+    delay(50);
+  }
+  
+  lastButtonState = buttonState; // อัพเดทสถานะก่อนหน้าของสวิตซ์
   // Serial.println("Hello");
 
-  //  if (Serial1.available()>0) {
-  //   Read data from Serial1
-  //   //Serial.println("Hello");
-  //   String receivedData = Serial1.readString();
+  //  if (Serial2.available()>0) {
+    //Read data from Serial1
+    // Serial.println("Hello");
+    // String receivedData = Serial2.readString();
 
-  //   Serial.print("Received data: ");
-  //   Serial.println(receivedData);
-  //   client.publish(mqtt_topic_pub, receivedData.c_str());
+    // Serial.print("Received data: ");
+    // Serial.println(receivedData);
+    // client.publish(mqtt_topic_pub, receivedData.c_str());
 
    //}
 
@@ -394,6 +414,6 @@ void loop() {
   // Serial.print("\tF = ");
   // Serial.println(fahrenheit);
   // client.publish(mqtt_topic_pub, payload.c_str());
-    
+
   delay(1000); 
 }
