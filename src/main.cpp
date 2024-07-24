@@ -202,45 +202,26 @@ void resetWiFiConfig() {
 // }
 
 void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
-  // Serial.print("Message arrived on topic: ");
-  // Serial.print(topic);
-  // Serial.print(". Message: ");
   String messageTemp;
   for (int i = 0; i < length; i++) {
-    Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
-  Serial.println();
+  // Serial.println("Message received from MQTT:");
+  Serial.println(messageTemp);
 
-  if(messageTemp == ":i"){
-    
-    //state = 1;
-    Serial1.print(":i");
+  // ส่งข้อความที่ได้รับจาก MQTT ไปที่ Serial1
+  if (messageTemp.length() > 0) {
+    Serial1.println(messageTemp);
+    //Serial1.print("\r");
+    // delay(100); 
+
     String receivediTSD = Serial1.readString();
-    Serial.print("Received iTSD: ");
+    Serial.print("Received from Serial1: ");
     Serial.println(receivediTSD);
-    client.publish(mqtt_topic_pub, receivediTSD.c_str());
 
-  }
-  else if(messageTemp == ":dA"){
-
-    //state = 2;
-    Serial1.println(":dA");
-    String receivediTSD = Serial1.readString();
-    Serial.print("Received iTSD: ");
-    Serial.println(receivediTSD);
-    client.publish(mqtt_topic_pub, receivediTSD.c_str());
-   }
-   else if(messageTemp == ":dB"){
-
-     // state = 2;
-    Serial1.println(":dB");
-    String receivediTSD = Serial1.readString();
-    Serial.print("Received iTSD: ");
-    Serial.println(receivediTSD);
+    // ส่งข้อมูลที่ได้รับจาก Serial1 กลับไปที่ MQTT
     client.publish(mqtt_topic_pub, receivediTSD.c_str());
   }
-
 }
 
 void reconnect() {
@@ -350,6 +331,15 @@ void setup() {
 }
 
 void loop() {
+ //if(Serial.available()>0){
+ //  String data = Serial.readString();
+ //  Serial1.print(data);
+ //  String data1 = Serial1.readString();
+ //  Serial.print(data1);
+ //}else if(Serial1.available()>0){
+ //  String data1 = Serial1.readString();
+ //  Serial.println(data1);
+ //}
   if (!client.connected()) {
     reconnect();
   }
