@@ -19,9 +19,9 @@
 
 //Switch
 const int buttonPin = 32; // กำหนดขาพินของสวิตซ์
-int buttonState = 0;     // สถานะปัจจุบันของสวิตซ์
-int lastButtonState = 0; // สถานะก่อนหน้าของสวิตซ์
-int count = 0;           // ตัวนับการกดสวิตซ์
+int switchState = 0;
+int lastSwitchState = 0;
+int ledState = 0;
 int state = 1;
 
 //LED1
@@ -29,6 +29,9 @@ const int LED1 = 18;
 
 //LED2
 const int LED2 = 19;
+
+//LED3
+const int LED3 = 5;
 
 //MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 
@@ -245,6 +248,9 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
     // ส่งข้อมูลที่ได้รับจาก Serial1 กลับไปที่ MQTT
     client.publish(mqtt_topic_pub, received2.c_str());
   }
+  else if(messageTemp.length() > 0 && state == 3){
+     Serial.print("RS-485");
+  }
 }
 
 
@@ -271,6 +277,8 @@ void setup() {
   pinMode(buttonPin, INPUT);
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+  digitalWrite(LED1, HIGH);
   // Start Serial1 for communication with other devices
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
   Serial2.begin(9600);
@@ -364,32 +372,45 @@ void loop() {
   }
   client.loop();
   
-  buttonState = digitalRead(buttonPin); // อ่านสถานะของสวิตซ์
+    switchState = digitalRead(buttonPin);
 
-  // ตรวจสอบการเปลี่ยนแปลงของสถานะสวิตซ์
-  if (buttonState != lastButtonState) {
-    // ตรวจสอบว่าการเปลี่ยนแปลงนั้นเป็นการกดสวิตซ์ (ไม่ใช่การปล่อยสวิตซ์)
-    if (buttonState == HIGH) {
-      count++; // เพิ่มตัวนับการกดสวิตซ์
-
-      // ตรวจสอบว่าจำนวนการกดสวิตซ์เป็นเลขคู่หรือคี่
-      if (count % 2 == 0) {
-        Serial.println("iTSD1");
-        state = 1;
-        digitalWrite(LED1,1);
-        digitalWrite(LED2,0);
-      } else {
-        Serial.println("iTSD2");
-        state = 2;
-        digitalWrite(LED1,0);
-        digitalWrite(LED2,1);
-      }
+  // ตรวจสอบว่ามีการเปลี่ยนแปลงสถานะของสวิทช์หรือไม่
+  if (switchState == HIGH && lastSwitchState == LOW) {
+    // ถ้ามีการกดสวิทช์
+    ledState++;
+    if (ledState > 2) {
+      ledState = 0;
     }
-    // หน่วงเวลาเล็กน้อยเพื่อป้องกันการสั่น (debounce)
-    delay(50);
   }
-  
-  lastButtonState = buttonState; // อัพเดทสถานะก่อนหน้าของสวิตซ์
+
+  // อัพเดตสถานะของสวิทช์ล่าสุด
+  lastSwitchState = switchState;
+
+  // ควบคุมการเปิดปิดของ LED ตามสถานะ
+  switch (ledState) {
+    case 0:
+      digitalWrite(LED1, HIGH);
+      digitalWrite(LED2, LOW);
+      digitalWrite(LED3, LOW);
+      state = 1;
+      break;
+    case 1:
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED2, HIGH);
+      digitalWrite(LED3, LOW);
+      state = 2;
+      break;
+    case 2:
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED2, LOW);
+      digitalWrite(LED3, HIGH);
+      state = 3;
+      break;
+  }
+
+  delay(10);  // หน่วงเวลาเล็กน้อยเพื่อป้องกันการกระพริบ
+  }
+
   // Serial.println("Hello");
 
   //  if (Serial2.available()>0) {
@@ -415,5 +436,5 @@ void loop() {
   // Serial.println(fahrenheit);
   // client.publish(mqtt_topic_pub, payload.c_str());
 
-  delay(1000); 
-}
+//   delay(1000); 
+// }
