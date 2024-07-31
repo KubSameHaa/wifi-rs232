@@ -10,12 +10,8 @@
 #define RXD 26  // RXD
 #define TXD 22  // TXD
 
- #define RXD2 16  // RXD
- #define TXD2 17  // TXD
-
-// int thermoDO = 19;
-// int thermoCS = 5;
-// int thermoCLK = 18;
+#define RXD2 16  // RXD
+#define TXD2 17  // TXD
 
 //Switch
 const int buttonPin = 32; // กำหนดขาพินของสวิตซ์
@@ -32,8 +28,6 @@ const int LED2 = 19;
 
 //LED3
 const int LED3 = 5;
-
-//MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
 
 // กำหนด SSID และรหัสผ่านสำหรับ Access Point
 const char* apSSID = "ESP32";
@@ -193,32 +187,13 @@ void loadWiFiConfig(String &ssid, String &password) {
 void resetWiFiConfig() {
   SPIFFS.remove("/wifi_config.txt");
   Serial.println("WiFi configuration reset.");
-  ESP.restart(); // รีสตาร์ท ESP32
+  ESP.restart(); // restart ESP32
 }
-
-// void setup_wifi() {
-//   delay(10);
-//   Serial.println();
-//   Serial.print("Connecting to ");
-//   Serial.println(ssid);
-
-//   WiFi.begin(ssid, password);
-
-//   while (WiFi.status() != WL_CONNECTED) {
-//     delay(500);
-//     Serial.print(".");
-//   }
-
-//   Serial.println("");
-//   Serial.println("WiFi connected");
-//   Serial.println("IP address: ");
-//   Serial.println(WiFi.localIP());
-// }
 
 void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   String messageTemp;
   for (int i = 0; i < length; i++) {
-    messageTemp += (char)message[i];
+  messageTemp += (char)message[i];
   }
   // Serial.println("Message received from MQTT:");
   Serial.println(messageTemp);
@@ -226,33 +201,26 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   // ส่งข้อความที่ได้รับจาก MQTT ไปที่ Serial1
   if (messageTemp.length() > 0 && state == 1) {
     Serial1.println(messageTemp);
-    //Serial1.print("\r");
-    // delay(100); 
-
     String received1 = Serial1.readString();
-    Serial.print("Received from Serial1: ");
+    Serial.print("Received from TTL: ");
     Serial.println(received1);
 
-    // ส่งข้อมูลที่ได้รับจาก Serial1 กลับไปที่ MQTT
+    // Publish data from Serial1 to MQTT
     client.publish(mqtt_topic_pub, received1.c_str());
   }
   else if(messageTemp.length() > 0 && state == 2){
-     Serial2.println(messageTemp);
-    //Serial1.print("\r");
-    // delay(100); 
-
+    Serial2.println(messageTemp);
     String received2 = Serial2.readString();
-    Serial.print("Received from Serial2: ");
+    Serial.print("Received from RS-232: ");
     Serial.println(received2);
 
-    // ส่งข้อมูลที่ได้รับจาก Serial1 กลับไปที่ MQTT
+    // ส่งข้อมูลที่ได้รับจาก Serial2 กลับไปที่ MQTT
     client.publish(mqtt_topic_pub, received2.c_str());
   }
   else if(messageTemp.length() > 0 && state == 3){
-     Serial.print("RS-485");
+     Serial.println("Received from RS-485: ");
   }
 }
-
 
 void reconnect() {
   // Loop until we're reconnected
@@ -279,11 +247,11 @@ void setup() {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   digitalWrite(LED1, HIGH);
-  // Start Serial1 for communication with other devices
+
+  // Start Serial for communication with other devices
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
   Serial2.begin(9600);
-
-
+  
   espClient.setCACert(root_ca);
 
   Serial.println("ESP32 Initialized");
@@ -383,10 +351,10 @@ void loop() {
     }
   }
 
-  // อัพเดตสถานะของสวิทช์ล่าสุด
+  // Update status switch
   lastSwitchState = switchState;
 
-  // ควบคุมการเปิดปิดของ LED ตามสถานะ
+  // Case status LED
   switch (ledState) {
     case 0:
       digitalWrite(LED1, HIGH);
@@ -408,33 +376,5 @@ void loop() {
       break;
   }
 
-  delay(10);  // หน่วงเวลาเล็กน้อยเพื่อป้องกันการกระพริบ
+  delay(10); 
   }
-
-  // Serial.println("Hello");
-
-  //  if (Serial2.available()>0) {
-    //Read data from Serial1
-    // Serial.println("Hello");
-    // String receivedData = Serial2.readString();
-
-    // Serial.print("Received data: ");
-    // Serial.println(receivedData);
-    // client.publish(mqtt_topic_pub, receivedData.c_str());
-
-   //}
-
-  // double celsius = thermocouple.readCelsius();
-  // double fahrenheit = thermocouple.readFahrenheit();
-  // String celsiusStr = String(celsius, 2);
-  // String fahrenheitStr = String(fahrenheit, 2);
-  // String payload = "C = " + String(celsius, 2) + " , F = " + String(fahrenheit, 2);
-
-  // Serial.print("C = ");
-  // Serial.print(celsius);
-  // Serial.print("\tF = ");
-  // Serial.println(fahrenheit);
-  // client.publish(mqtt_topic_pub, payload.c_str());
-
-//   delay(1000); 
-// }
