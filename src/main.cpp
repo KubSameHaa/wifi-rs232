@@ -20,6 +20,10 @@ int lastSwitchState = 0;
 int ledState = 0;
 int state = 1;
 
+// Switch reset
+const int buttonPin2 = 35;
+int switch_rst = 0;
+
 //LED1
 const int LED1 = 18;
 
@@ -28,6 +32,12 @@ const int LED2 = 19;
 
 //LED3
 const int LED3 = 5;
+
+//LED4
+const int LED4 = 12;
+
+int previousState = 0; // ตัวแปรสำหรับเก็บค่า state ก่อนหน้า
+
 
 // กำหนด SSID และรหัสผ่านสำหรับ Access Point
 const char* apSSID = "ESP32";
@@ -217,9 +227,6 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
     // ส่งข้อมูลที่ได้รับจาก Serial2 กลับไปที่ MQTT
     client.publish(mqtt_topic_pub, received2.c_str());
   }
-  else if(messageTemp.length() > 0 && state == 3){
-     Serial.println("Received from RS-485: ");
-  }
 }
 
 void reconnect() {
@@ -243,10 +250,12 @@ void reconnect() {
 void setup() {
   Serial.begin(115200);
   pinMode(buttonPin, INPUT);
+  pinMode(buttonPin2, INPUT);
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
-  digitalWrite(LED1, HIGH);
+  pinMode(LED4, OUTPUT);
+  digitalWrite(LED4, HIGH);
 
   // Start Serial for communication with other devices
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
@@ -346,7 +355,7 @@ void loop() {
   if (switchState == HIGH && lastSwitchState == LOW) {
     // ถ้ามีการกดสวิทช์
     ledState++;
-    if (ledState > 2) {
+    if (ledState > 1) {
       ledState = 0;
     }
   }
@@ -359,22 +368,39 @@ void loop() {
     case 0:
       digitalWrite(LED1, HIGH);
       digitalWrite(LED2, LOW);
-      digitalWrite(LED3, LOW);
       state = 1;
       break;
     case 1:
       digitalWrite(LED1, LOW);
       digitalWrite(LED2, HIGH);
-      digitalWrite(LED3, LOW);
       state = 2;
       break;
-    case 2:
-      digitalWrite(LED1, LOW);
-      digitalWrite(LED2, LOW);
-      digitalWrite(LED3, HIGH);
-      state = 3;
-      break;
   }
+
+    // แสดงข้อความเมื่อ state เปลี่ยน
+  if (state != previousState) {
+    if (state == 1) {
+      Serial.println("Switching to TTL");
+    } else if (state == 2) {
+      Serial.println("Switching to RS-232");
+    }
+    previousState = state; // อัพเดต previousState
+  }
+
+  // Check if reset button is pressed to restart ESP32
+  switch_rst = digitalRead(buttonPin2);
+
+  if(switch_rst == HIGH) {
+    Serial.println("Switch pressed: Restarting ESP32...");
+    delay(1000); // Optional: Delay to debounce or allow time to notice the action
+    ESP.restart(); // Restart ESP32
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED3, HIGH);  // Keep LED3 on when connected
+  } else {
+      digitalWrite(LED3, 0);
+    }
 
   delay(10); 
   }
