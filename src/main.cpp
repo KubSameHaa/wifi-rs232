@@ -25,10 +25,10 @@ const int buttonPin2 = 35;
 int switch_rst = 0;
 
 //LED1
-const int LED1 = 18;
+const int LED_TTL = 18;
 
 //LED2
-const int LED2 = 19;
+const int LED_RS = 19;
 
 //LED3
 const int LED3 = 5;
@@ -203,29 +203,58 @@ void resetWiFiConfig() {
 void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
   String messageTemp;
   for (int i = 0; i < length; i++) {
-  messageTemp += (char)message[i];
+    messageTemp += (char)message[i];
   }
-  // Serial.println("Message received from MQTT:");
-  Serial.println(messageTemp);
   
-  // ส่งข้อความที่ได้รับจาก MQTT ไปที่ Serial1
-  if (messageTemp.length() > 0 && state == 1) {
-    Serial1.println(messageTemp);
-    String received1 = Serial1.readString();
-    Serial.print("Received from TTL: ");
-    Serial.println(received1);
+  Serial.println(messageTemp);
 
-    // Publish data from Serial1 to MQTT
-    client.publish(mqtt_topic_pub, received1.c_str());
-  }
-  else if(messageTemp.length() > 0 && state == 2){
-    Serial2.println(messageTemp);
-    String received2 = Serial2.readString();
-    Serial.print("Received from RS-232: ");
-    Serial.println(received2);
+  if (messageTemp.length() > 0) {
+    if (state == 1) {
+      Serial1.println(messageTemp);
+      
+      // ใช้ timeout ในการรอข้อมูลจาก Serial1
+      unsigned long startMillis = millis();
+      while (millis() - startMillis < 2000) {  // Timeout 1 วินาที
+        if (Serial1.available() > 0) {
+          String received1 = Serial1.readString();
+          Serial.print("Received from TTL: ");
+          Serial.println(received1);
+          client.publish(mqtt_topic_pub, received1.c_str());
+          return;  // ออกจาก callback หลังจากส่งข้อมูล
+        }
+        delay(10);  // Delay เล็กน้อยเพื่อหลีกเลี่ยง busy waiting
+      }
+      Serial.println("Serial not connected or no data available.");
+       for (int i = 0; i < 5; i++) {  // วนลูปเพื่อกระพริบ LED 5 ครั้ง
+        digitalWrite(LED_TTL, HIGH);  // เปิด LED
+        delay(100);  // รอ 500 มิลลิวินาที
+        digitalWrite(LED_TTL, LOW);  // ปิด LED
+        delay(100);  // รอ 500 มิลลิวินาที
+        }
 
-    // ส่งข้อมูลที่ได้รับจาก Serial2 กลับไปที่ MQTT
-    client.publish(mqtt_topic_pub, received2.c_str());
+    } else if (state == 2) {
+      Serial2.println(messageTemp);
+
+      // ใช้ timeout ในการรอข้อมูลจาก Serial2
+      unsigned long startMillis = millis();
+      while (millis() - startMillis < 2000) {  // Timeout 1 วินาที
+        if (Serial2.available() > 0) {
+          String received2 = Serial2.readString();
+          Serial.print("Received from RS-232: ");
+          Serial.println(received2);
+          client.publish(mqtt_topic_pub, received2.c_str());
+          return;  // ออกจาก callback หลังจากส่งข้อมูล
+        }
+        delay(10);  // Delay เล็กน้อยเพื่อหลีกเลี่ยง busy waiting
+      }
+      Serial.println("Serial not connected or no data available.");
+      for (int i = 0; i < 5; i++) {  // วนลูปเพื่อกระพริบ LED 5 ครั้ง
+        digitalWrite(LED_RS, HIGH);  // เปิด LED
+        delay(100);  // รอ 500 มิลลิวินาที
+        digitalWrite(LED_RS, LOW);  // ปิด LED
+        delay(100);  // รอ 500 มิลลิวินาที
+        }
+    }
   }
 }
 
@@ -251,15 +280,15 @@ void setup() {
   Serial.begin(115200);
   pinMode(buttonPin, INPUT);
   pinMode(buttonPin2, INPUT);
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
+  pinMode(LED_TTL, OUTPUT);
+  pinMode(LED_RS, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
   digitalWrite(LED4, HIGH);
 
   // Start Serial for communication with other devices
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
-  Serial2.begin(9600);
+  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
   
   espClient.setCACert(root_ca);
 
@@ -348,9 +377,8 @@ void loop() {
     reconnect();
   }
   client.loop();
-  
-    switchState = digitalRead(buttonPin);
 
+  switchState = digitalRead(buttonPin);
   // ตรวจสอบว่ามีการเปลี่ยนแปลงสถานะของสวิทช์หรือไม่
   if (switchState == HIGH && lastSwitchState == LOW) {
     // ถ้ามีการกดสวิทช์
@@ -366,13 +394,13 @@ void loop() {
   // Case status LED
   switch (ledState) {
     case 0:
-      digitalWrite(LED1, HIGH);
-      digitalWrite(LED2, LOW);
+      digitalWrite(LED_TTL, HIGH);
+      digitalWrite(LED_RS, LOW);
       state = 1;
       break;
     case 1:
-      digitalWrite(LED1, LOW);
-      digitalWrite(LED2, HIGH);
+      digitalWrite(LED_TTL, LOW);
+      digitalWrite(LED_RS, HIGH);
       state = 2;
       break;
   }
@@ -402,5 +430,5 @@ void loop() {
       digitalWrite(LED3, 0);
     }
 
-  delay(10); 
-  }
+  delay(10);
+}
