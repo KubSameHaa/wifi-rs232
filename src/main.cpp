@@ -21,7 +21,7 @@ int ledState = 0;
 int state = 1;
 
 // Switch reset
-const int buttonPin2 = 35;
+const int buttonPin2 = 34;
 int switch_rst = 0;
 
 //LED1
@@ -31,13 +31,14 @@ const int LED_TTL = 18;
 const int LED_RS = 19;
 
 //LED3
-const int LED3 = 5;
+const int LED_wifi = 5;
 
 //LED4
-const int LED4 = 12;
+const int LED_power = 12;
 
 int previousState = 0; // ตัวแปรสำหรับเก็บค่า state ก่อนหน้า
 
+char Res_Cnt=0;
 
 // กำหนด SSID และรหัสผ่านสำหรับ Access Point
 const char* apSSID = "ESP32";
@@ -238,7 +239,7 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
       // ใช้ timeout ในการรอข้อมูลจาก Serial2
       unsigned long startMillis = millis();
       while (millis() - startMillis < 2000) {  // Timeout 1 วินาที
-        if (Serial2.available() > 0) {
+        if (Serial2.available() > 0) {// && Serial2.readString() != "" && Serial2.readString() != NULL && Serial2.readString() != "\r" && Serial2.readString() != "\n") {
           String received2 = Serial2.readString();
           Serial.print("Received from RS-232: ");
           Serial.println(received2);
@@ -254,18 +255,21 @@ void callback(char* mqtt_topic_sub, byte* message, unsigned int length) {
         digitalWrite(LED_RS, LOW);  // ปิด LED
         delay(100);  // รอ 500 มิลลิวินาที
         }
+      delay(10);
     }
   }
 }
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
+  //while (!client.connected()) {
+  if (!client.connected()) {
+    Serial.println("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect("ESP32Client", mqtt_user, mqtt_password)) {
       Serial.println("connected");
       client.subscribe(mqtt_topic_sub); // Subscribe to the topic
+      Res_Cnt=0;
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -273,6 +277,69 @@ void reconnect() {
       // Wait 5 seconds before retrying
       delay(5000);
     }
+    //delay(5000);
+    // if(++Res_Cnt>5) {
+    // ESP.restart();
+    // }
+  }
+ 
+  return;
+}
+
+//LED status แสดงไฟว่ามีการเชื่อมต่อ wifi หรือไม่
+void wifi_blink(void* pvParameter){
+  while(true){
+    if (WiFi.status() != WL_CONNECTED) {
+      digitalWrite(LED_wifi, 1);
+      delay(300);
+      digitalWrite(LED_wifi, 0);
+      delay(300);
+      digitalWrite(LED_TTL, 0);
+      digitalWrite(LED_RS, 0);
+    }
+    else{
+      digitalWrite(LED_wifi, 1);
+    }
+    vTaskDelay(100/ portTICK_PERIOD_MS);
+  }
+  vTaskDelete(NULL);
+  
+
+}
+
+//SW_reset กดเพื่อรีเซ็ตบอร์ด
+void switch_reset(void* pvParameter){
+  while(true){
+    int switch_rst = digitalRead(buttonPin2);
+
+    if(switch_rst == HIGH) {
+      //Serial.println(switch_rst);
+      Serial.println("Switch pressed: Restarting ESP32...");
+      delay(1000);
+      //resetWiFiConfig();
+      ESP.restart(); 
+    }
+    vTaskDelay(100/ portTICK_PERIOD_MS);
+  }
+  vTaskDelete(NULL);
+}
+
+void wifi_setup(){
+  // ถ้าไม่มีข้อมูล Wi-Fi ที่บันทึกไว้ หรือเชื่อมต่อไม่สำเร็จ
+  if (WiFi.status() != WL_CONNECTED) {
+    // ตั้งค่า ESP32 เป็น Access Point
+    bool result = WiFi.softAP(apSSID, apPassword);
+    if(result) {
+      Serial.println("Access Point Started");
+    } else {
+      Serial.println("Access Point Failed");
+    }
+
+    // ตรวจสอบที่อยู่ IP ของ Access Point
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(IP);
+    String apIpAddress = "AP IP address: " + IP.toString();
   }
 }
 
@@ -282,9 +349,9 @@ void setup() {
   pinMode(buttonPin2, INPUT);
   pinMode(LED_TTL, OUTPUT);
   pinMode(LED_RS, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  pinMode(LED4, OUTPUT);
-  digitalWrite(LED4, HIGH);
+  pinMode(LED_wifi, OUTPUT);
+  pinMode(LED_power, OUTPUT);
+  digitalWrite(LED_power, HIGH);
 
   // Start Serial for communication with other devices
   Serial1.begin(9600, SERIAL_8N1, RXD, TXD);
@@ -325,23 +392,23 @@ void setup() {
       Serial.println("Failed to connect to WiFi, starting AP mode...");
     }
   }
+  wifi_setup();
+  // // ถ้าไม่มีข้อมูล Wi-Fi ที่บันทึกไว้ หรือเชื่อมต่อไม่สำเร็จ
+  // if (WiFi.status() != WL_CONNECTED) {
+  //   // ตั้งค่า ESP32 เป็น Access Point
+  //   bool result = WiFi.softAP(apSSID, apPassword);
+  //   if(result) {
+  //     Serial.println("Access Point Started");
+  //   } else {
+  //     Serial.println("Access Point Failed");
+  //   }
 
-  // ถ้าไม่มีข้อมูล Wi-Fi ที่บันทึกไว้ หรือเชื่อมต่อไม่สำเร็จ
-  if (WiFi.status() != WL_CONNECTED) {
-    // ตั้งค่า ESP32 เป็น Access Point
-    bool result = WiFi.softAP(apSSID, apPassword);
-    if(result) {
-      Serial.println("Access Point Started");
-    } else {
-      Serial.println("Access Point Failed");
-    }
-
-    // ตรวจสอบที่อยู่ IP ของ Access Point
-    IPAddress IP = WiFi.softAPIP();
-    Serial.print("AP IP address: ");
-    Serial.println(IP);
-    String apIpAddress = "AP IP address: " + IP.toString();
-  }
+  //   // ตรวจสอบที่อยู่ IP ของ Access Point
+  //   IPAddress IP = WiFi.softAPIP();
+  //   Serial.print("AP IP address: ");
+  //   Serial.println(IP);
+  //   String apIpAddress = "AP IP address: " + IP.toString();
+  // }
 
   // กำหนดรูท URL และแสดงฟอร์ม HTML
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -354,6 +421,7 @@ void setup() {
     String password = request->getParam("password")->value();
     saveWiFiConfig(ssid, password);
     request->send(200, "text/html", "WiFi configuration saved. Please restart the ESP32.");
+    ESP.restart();
   });
 
   // รีเซ็ตข้อมูล Wi-Fi (Reset in the webpage)
@@ -370,6 +438,26 @@ void setup() {
   client.setCallback(callback);
   client.subscribe(mqtt_topic_sub);
   //reconnect(); // Start the MQTT connection
+
+  xTaskCreatePinnedToCore(
+    wifi_blink,          // Function that implements the task
+    "wifi_blink",        // Task name
+    2048,                // Stack size (in words) allocated for the task
+    NULL,                // Parameter passed to the task
+    1,                   // Task priority
+    NULL,                // Task handle
+    0                    // Core to which the task is pinned (0 or 1)
+  );
+
+  xTaskCreatePinnedToCore(
+    switch_reset,        // Function that implements the task
+    "switch_port",       // Task names
+    2048,                // Stack size (in words) allocated for the task
+    NULL,                // Parameter passed to the task
+    1,                   // Task priority
+    NULL,                // Task handle
+    0                    // Core to which the task is pinned (0 or 1)
+  );
 }
 
 void loop() {
@@ -416,19 +504,14 @@ void loop() {
   }
 
   // Check if reset button is pressed to restart ESP32
-  switch_rst = digitalRead(buttonPin2);
+  //switch_rst = digitalRead(buttonPin2);
 
-  if(switch_rst == HIGH) {
-    Serial.println("Switch pressed: Restarting ESP32...");
-    delay(1000); // Optional: Delay to debounce or allow time to notice the action
-    ESP.restart(); // Restart ESP32
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    digitalWrite(LED3, HIGH);  // Keep LED3 on when connected
-  } else {
-      digitalWrite(LED3, 0);
-    }
+  // if(switch_rst == HIGH) {
+  //   Serial.println("Switch pressed: Restarting ESP32...");
+  //   delay(1000); // Optional: Delay to debounce or allow time to notice the action
+  //   resetWiFiConfig();
+  //   ESP.restart(); // Restart ESP32
+  // }
 
   delay(10);
-}
+  }
